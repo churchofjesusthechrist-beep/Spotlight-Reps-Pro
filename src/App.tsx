@@ -13,6 +13,8 @@ import { Stats } from './pages/Stats';
 import { Settings } from './pages/Settings';
 import { ScriptsManager } from './pages/ScriptsManager';
 import { AdminArea } from './pages/AdminArea';
+import { AdminCRM } from './pages/AdminCRM';
+import { Prospects } from './pages/Prospects';
 import { Wizard } from './pages/Wizard';
 import { Layout } from './components/Layout';
 import { PWAInstallButton } from './components/PWAInstallButton';
@@ -29,6 +31,13 @@ export default function App() {
       dbApi.initializeDefaultScripts().catch(console.error);
     }
   }, [profile?.isAdmin]);
+
+  useEffect(() => {
+    // Record activity so admin CRM can flag reps who've gone quiet
+    if (profile?.id) {
+      dbApi.touchRepActivity(profile.id).catch(console.error);
+    }
+  }, [profile?.id]);
 
   if (loading) {
     return <div className="min-h-screen bg-[#0A192F] flex items-center justify-center text-white">Loading...</div>;
@@ -48,6 +57,7 @@ export default function App() {
               <Route path="/boards" element={<Dashboard />} />
               <Route path="/boards/:id" element={<BoardDetail />} />
               <Route path="/boards/:id/wizard" element={<Wizard />} />
+              <Route path="/prospects" element={<Prospects />} />
               <Route path="/followups" element={<FollowUps />} />
               
               {/* Rep specific route */}
@@ -58,6 +68,7 @@ export default function App() {
               {/* Admin only routes */}
               <Route path="/admin" element={profile.isAdmin ? <AdminArea /> : <Navigate to="/" replace />} />
               <Route path="/admin/scripts" element={profile.isAdmin ? <ScriptsManager /> : <Navigate to="/" replace />} />
+              <Route path="/admin/crm" element={profile.isAdmin ? <AdminCRM /> : <Navigate to="/" replace />} />
               
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>

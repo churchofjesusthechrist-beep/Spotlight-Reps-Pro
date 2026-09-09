@@ -111,6 +111,38 @@ service cloud.firestore {
         && (data.keys().hasAny(['notes']) ? (data.notes is string && data.notes.size() <= 5000) : true);
     }
 
+    function isValidProspect(data) {
+      return data.keys().hasAll(['id', 'assignedRepId', 'type', 'businessName', 'status', 'source', 'createdAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.assignedRepId is string && data.assignedRepId.size() <= 128
+        && data.type is string && data.type.size() <= 50
+        && data.businessName is string && data.businessName.size() <= 200
+        && data.status is string && data.status.size() <= 50
+        && data.source is string && data.source.size() <= 50
+        && data.createdAt is timestamp
+        && (data.keys().hasAny(['contactName']) ? (data.contactName is string && data.contactName.size() <= 200) : true)
+        && (data.keys().hasAny(['phone']) ? (data.phone is string && data.phone.size() <= 50) : true)
+        && (data.keys().hasAny(['email']) ? (data.email is string && data.email.size() <= 200) : true)
+        && (data.keys().hasAny(['address']) ? (data.address is string && data.address.size() <= 500) : true)
+        && (data.keys().hasAny(['website']) ? (data.website is string && data.website.size() <= 300) : true)
+        && (data.keys().hasAny(['reasonFlagged']) ? (data.reasonFlagged is string && data.reasonFlagged.size() <= 1000) : true)
+        && (data.keys().hasAny(['lastContactedAt']) ? (data.lastContactedAt is string && data.lastContactedAt.size() <= 50) : true)
+        && (data.keys().hasAny(['convertedBoardId']) ? (data.convertedBoardId is string && data.convertedBoardId.size() <= 128) : true);
+    }
+
+    function isValidReminder(data) {
+      return data.keys().hasAll(['id', 'repId', 'relatedType', 'title', 'dueDate', 'completed', 'createdAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.repId is string && data.repId.size() <= 128
+        && data.relatedType is string && data.relatedType.size() <= 50
+        && data.title is string && data.title.size() <= 200
+        && data.dueDate is string && data.dueDate.size() <= 50
+        && data.completed is bool
+        && data.createdAt is timestamp
+        && (data.keys().hasAny(['relatedId']) ? (data.relatedId is string && data.relatedId.size() <= 128) : true)
+        && (data.keys().hasAny(['notes']) ? (data.notes is string && data.notes.size() <= 5000) : true);
+    }
+
     function isValidScript(data) {
       return data.keys().hasAll(['id', 'title', 'content', 'category', 'updatedAt'])
         && data.id is string && data.id.size() <= 128
@@ -225,6 +257,42 @@ service cloud.firestore {
           get(/databases/$(database)/documents/boards/$(boardId)).data.assignedRepId == request.auth.uid || isAdmin()
         );
       }
+    }
+
+    match /prospects/{prospectId} {
+      allow get: if isVerified() && isValidId(prospectId) && (existing().assignedRepId == request.auth.uid || isAdmin());
+      allow list: if isVerified() && (resource.data.assignedRepId == request.auth.uid || isAdmin());
+
+      allow create: if isVerified() && isValidId(prospectId)
+        && isValidProspect(incoming())
+        && incoming().id == prospectId
+        && (incoming().assignedRepId == request.auth.uid || isAdmin())
+        && incoming().createdAt == request.time;
+
+      allow update: if isVerified() && isValidId(prospectId) && isValidProspect(incoming()) && (
+        isAdmin() ||
+        (existing().assignedRepId == request.auth.uid && incoming().assignedRepId == existing().assignedRepId && incoming().createdAt == existing().createdAt)
+      );
+
+      allow delete: if isVerified() && isValidId(prospectId) && (existing().assignedRepId == request.auth.uid || isAdmin());
+    }
+
+    match /reminders/{reminderId} {
+      allow get: if isVerified() && isValidId(reminderId) && (existing().repId == request.auth.uid || isAdmin());
+      allow list: if isVerified() && (resource.data.repId == request.auth.uid || isAdmin());
+
+      allow create: if isVerified() && isValidId(reminderId)
+        && isValidReminder(incoming())
+        && incoming().id == reminderId
+        && (incoming().repId == request.auth.uid || isAdmin())
+        && incoming().createdAt == request.time;
+
+      allow update: if isVerified() && isValidId(reminderId) && isValidReminder(incoming()) && (
+        isAdmin() ||
+        (existing().repId == request.auth.uid && incoming().repId == existing().repId && incoming().createdAt == existing().createdAt)
+      );
+
+      allow delete: if isVerified() && isValidId(reminderId) && (existing().repId == request.auth.uid || isAdmin());
     }
 
     match /scripts/{scriptId} {
