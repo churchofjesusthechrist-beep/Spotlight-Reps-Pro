@@ -1,13 +1,19 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { Home, LayoutList, CalendarCheck, BarChart2, Settings as SettingsIcon } from 'lucide-react';
+import { Home, LayoutList, Search, CalendarCheck, BarChart2, Settings as SettingsIcon } from 'lucide-react';
 import clsx from 'clsx';
+import { useAuth } from '../hooks/useAuth';
 
 export const Layout = () => {
+  const { profile } = useAuth();
+
   const navItems = [
     { to: '/', icon: Home, label: 'Home' },
     { to: '/boards', icon: LayoutList, label: 'Boards' },
+    { to: '/prospects', icon: Search, label: 'Prospects' },
     { to: '/followups', icon: CalendarCheck, label: 'Follow-Ups' },
-    { to: '/stats', icon: BarChart2, label: 'Stats' },
+    ...(profile?.isAdmin
+      ? [{ to: '/admin/crm', icon: BarChart2, label: 'Team CRM' }]
+      : [{ to: '/stats', icon: BarChart2, label: 'Stats' }]),
     { to: '/settings', icon: SettingsIcon, label: 'Settings' },
   ];
 

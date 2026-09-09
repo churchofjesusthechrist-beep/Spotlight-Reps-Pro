@@ -1,6 +1,6 @@
 import { db, auth, handleFirestoreError, OperationType } from './firebase';
 import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, writeBatch } from 'firebase/firestore';
-import { RepProfile, Board, Referral, Sponsor, FollowUp, Script, BoardStatus } from './types';
+import { RepProfile, Board, Referral, Sponsor, FollowUp, Script, BoardStatus, Prospect, Reminder } from './types';
 
 export const dbApi = {
   // Profiles
@@ -171,6 +171,148 @@ export const dbApi = {
       }
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, `boards/${followUp.boardId}/followups/${followUp.id}`);
+    }
+  },
+
+  // Backup / restore (Settings page)
+  async exportData(): Promise<string> {
+    const boards = await this.getBoards();
+    const prospects = await this.getProspects();
+    const reminders = await this.getReminders();
+
+    const boardsWithChildren = await Promise.all(boards.map(async board => ({
+      board,
+      referrals: await this.getReferralsForBoard(board.id),
+      sponsors: await this.getSponsorsForBoard(board.id)
+    })));
+
+    return JSON.stringify({
+      exportedAt: new Date().toISOString(),
+      boardsWithChildren,
+      prospects,
+      reminders
+    }, null, 2);
+  },
+
+  async importData(json: string): Promise<void> {
+    const data = JSON.parse(json);
+
+    if (Array.isArray(data.boardsWithChildren)) {
+      for (const entry of data.boardsWithChildren) {
+        if (entry.board) await this.saveBoard(entry.board);
+        if (Array.isArray(entry.referrals)) {
+          for (const r of entry.referrals) await this.saveReferral(r);
+        }
+        if (Array.isArray(entry.sponsors)) {
+          for (const s of entry.sponsors) await this.saveSponsor(s);
+        }
+      }
+    }
+
+    if (Array.isArray(data.prospects)) {
+      for (const p of data.prospects) await this.saveProspect(p);
+    }
+
+    if (Array.isArray(data.reminders)) {
+      for (const r of data.reminders) await this.saveReminder(r);
+    }
+  },
+
+  // Reps (admin only in practice — Firestore rules should enforce this)
+  async getAllReps(): Promise<RepProfile[]> {
+    try {
+      const snap = await getDocs(collection(db, 'users'));
+      return snap.docs.map(d => d.data() as RepProfile);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, 'users');
+      return [];
+    }
+  },
+
+  async touchRepActivity(userId: string): Promise<void> {
+    try {
+      await updateDoc(doc(db, 'users', userId), { lastActiveAt: new Date().toISOString() });
+    } catch (error) {
+      // Non-critical, don't surface to user
+      console.error('Failed to update activity timestamp', error);
+    }
+  },
+
+  // Prospects (AI-sourced or manually added leads)
+  async getProspects(): Promise<Prospect[]> {
+    try {
+      const userId = auth.currentUser?.uid;
+      const profile = userId ? await this.getProfile(userId) : null;
+      let q = collection(db, 'prospects') as any;
+
+      if (!profile?.isAdmin && userId) {
+        q = query(collection(db, 'prospects'), where('assignedRepId', '==', userId));
+      }
+
+      const snap = await getDocs(q);
+      return snap.docs.map(d => d.data() as Prospect);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, 'prospects');
+      return [];
+    }
+  },
+
+  async saveProspect(prospect: Prospect): Promise<void> {
+    try {
+      const existingSnap = await getDoc(doc(db, 'prospects', prospect.id));
+      if (existingSnap.exists()) {
+        await updateDoc(doc(db, 'prospects', prospect.id), prospect as any);
+      } else {
+        await setDoc(doc(db, 'prospects', prospect.id), {
+          ...prospect,
+          createdAt: serverTimestamp()
+        });
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `prospects/${prospect.id}`);
+    }
+  },
+
+  async deleteProspect(id: string): Promise<void> {
+    try {
+      await deleteDoc(doc(db, 'prospects', id));
+    } catch (error) {
+      handleFirestoreError(error, OperationType.DELETE, `prospects/${id}`);
+    }
+  },
+
+  // Reminders (calendar / follow-up nudges, not tied to a board)
+  async getReminders(): Promise<Reminder[]> {
+    try {
+      const userId = auth.currentUser?.uid;
+      const profile = userId ? await this.getProfile(userId) : null;
+      let q = collection(db, 'reminders') as any;
+
+      if (!profile?.isAdmin && userId) {
+        q = query(collection(db, 'reminders'), where('repId', '==', userId));
+      }
+
+      const snap = await getDocs(q);
+      return snap.docs.map(d => d.data() as Reminder);
+    } catch (error) {
+      handleFirestoreError(error, OperationType.LIST, 'reminders');
+      return [];
+    }
+  },
+
+  async saveReminder(reminder: Reminder): Promise<void> {
+    try {
+      const existingSnap = await getDoc(doc(db, 'reminders', reminder.id));
+      if (existingSnap.exists()) {
+        await updateDoc(doc(db, 'reminders', reminder.id), reminder as any);
+      } else {
+        await setDoc(doc(db, 'reminders', reminder.id), {
+          ...reminder,
+          createdAt: serverTimestamp()
+        });
+      }
+    } catch (error) {
+      handleFirestoreError(error, OperationType.WRITE, `reminders/${reminder.id}`);
     }
   },
 

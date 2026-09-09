@@ -5,6 +5,46 @@ export interface RepProfile {
   phone: string;
   isAdmin: boolean;
   createdAt?: string;
+  lastActiveAt?: string;
+}
+
+export type ProspectType = 'Restaurant' | 'Sponsor';
+
+export type ProspectStatus =
+  | 'New'
+  | 'Contacted'
+  | 'Replied'
+  | 'Not Interested'
+  | 'Converted';
+
+export interface Prospect {
+  id: string;
+  assignedRepId: string;
+  type: ProspectType;
+  businessName: string;
+  contactName?: string;
+  phone?: string;
+  email?: string;
+  address?: string;
+  website?: string;
+  reasonFlagged?: string; // why AI thinks this is a good lead (e.g. "no website found")
+  status: ProspectStatus;
+  source: 'AI' | 'Manual';
+  createdAt: string;
+  lastContactedAt?: string;
+  convertedBoardId?: string;
+}
+
+export interface Reminder {
+  id: string;
+  repId: string;
+  relatedType: 'Prospect' | 'Board' | 'Sponsor' | 'General';
+  relatedId?: string;
+  title: string;
+  dueDate: string;
+  notes?: string;
+  completed: boolean;
+  createdAt: string;
 }
 
 export type BoardStatus = 
