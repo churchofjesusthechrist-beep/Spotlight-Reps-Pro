@@ -1,0 +1,238 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isVerified() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isVerified() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    function isSystemAdminBootstrapping() {
+      // Allows the specific email to create their own admin profile during setup
+      return isVerified() && request.auth.token.email == 'williamblizzard@gmail.com';
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() { return request.resource.data; }
+    function existing() { return resource.data; }
+
+    function isValidRepProfile(data) {
+      return data.keys().hasAll(['id', 'fullName', 'email', 'isAdmin', 'createdAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.fullName is string && data.fullName.size() <= 200
+        && data.email is string && data.email.size() <= 200
+        && data.isAdmin is bool
+        && data.createdAt is timestamp
+        && (data.keys().hasAny(['phone']) ? (data.phone is string && data.phone.size() <= 50) : true);
+    }
+
+    function isValidBoard(data) {
+      return data.keys().hasAll(['id', 'assignedRepId', 'restaurantName', 'status', 'createdAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.assignedRepId is string && data.assignedRepId.size() <= 128
+        && data.restaurantName is string && data.restaurantName.size() <= 200
+        && data.status is string && data.status.size() <= 50
+        && data.createdAt is timestamp
+        && (data.keys().hasAny(['restaurantContactName']) ? (data.restaurantContactName is string && data.restaurantContactName.size() <= 200) : true)
+        && (data.keys().hasAny(['phone']) ? (data.phone is string && data.phone.size() <= 50) : true)
+        && (data.keys().hasAny(['email']) ? (data.email is string && data.email.size() <= 200) : true)
+        && (data.keys().hasAny(['address']) ? (data.address is string && data.address.size() <= 500) : true)
+        && (data.keys().hasAny(['notes']) ? (data.notes is string && data.notes.size() <= 5000) : true)
+        && (data.keys().hasAny(['orderDate']) ? (data.orderDate is string && data.orderDate.size() <= 50) : true)
+        && (data.keys().hasAny(['printerVendor']) ? (data.printerVendor is string && data.printerVendor.size() <= 200) : true)
+        && (data.keys().hasAny(['orderCost']) ? (data.orderCost is number) : true)
+        && (data.keys().hasAny(['expectedDeliveryDate']) ? (data.expectedDeliveryDate is string && data.expectedDeliveryDate.size() <= 50) : true)
+        && (data.keys().hasAny(['trackingNumber']) ? (data.trackingNumber is string && data.trackingNumber.size() <= 200) : true)
+        && (data.keys().hasAny(['orderNotes']) ? (data.orderNotes is string && data.orderNotes.size() <= 5000) : true)
+        && (data.keys().hasAny(['deliveryDate']) ? (data.deliveryDate is string && data.deliveryDate.size() <= 50) : true)
+        && (data.keys().hasAny(['deliveryNotes']) ? (data.deliveryNotes is string && data.deliveryNotes.size() <= 5000) : true);
+    }
+
+    function isValidReferral(data) {
+      return data.keys().hasAll(['id', 'boardId', 'businessName', 'createdAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.boardId is string && data.boardId.size() <= 128
+        && data.businessName is string && data.businessName.size() <= 200
+        && data.createdAt is timestamp
+        && (data.keys().hasAny(['contactName']) ? (data.contactName is string && data.contactName.size() <= 200) : true)
+        && (data.keys().hasAny(['phone']) ? (data.phone is string && data.phone.size() <= 50) : true)
+        && (data.keys().hasAny(['email']) ? (data.email is string && data.email.size() <= 200) : true)
+        && (data.keys().hasAny(['businessType']) ? (data.businessType is string && data.businessType.size() <= 200) : true)
+        && (data.keys().hasAny(['relationship']) ? (data.relationship is string && data.relationship.size() <= 200) : true)
+        && (data.keys().hasAny(['notes']) ? (data.notes is string && data.notes.size() <= 5000) : true);
+    }
+
+    function isValidSponsor(data) {
+      return data.keys().hasAll(['id', 'boardId', 'businessName', 'spotNumber', 'annualPrice', 'status', 'paymentStatus', 'createdAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.boardId is string && data.boardId.size() <= 128
+        && data.businessName is string && data.businessName.size() <= 200
+        && data.spotNumber is number
+        && data.annualPrice is number
+        && data.status is string && data.status.size() <= 50
+        && data.paymentStatus is string && data.paymentStatus.size() <= 50
+        && data.createdAt is timestamp
+        && (data.keys().hasAny(['contactName']) ? (data.contactName is string && data.contactName.size() <= 200) : true)
+        && (data.keys().hasAny(['phone']) ? (data.phone is string && data.phone.size() <= 50) : true)
+        && (data.keys().hasAny(['email']) ? (data.email is string && data.email.size() <= 200) : true)
+        && (data.keys().hasAny(['referralSource']) ? (data.referralSource is string && data.referralSource.size() <= 200) : true)
+        && (data.keys().hasAny(['notes']) ? (data.notes is string && data.notes.size() <= 5000) : true)
+        && (data.keys().hasAny(['lastContactDate']) ? (data.lastContactDate is string && data.lastContactDate.size() <= 50) : true)
+        && (data.keys().hasAny(['nextFollowUpDate']) ? (data.nextFollowUpDate is string && data.nextFollowUpDate.size() <= 50) : true)
+        && (data.keys().hasAny(['invoiceDate']) ? (data.invoiceDate is string && data.invoiceDate.size() <= 50) : true)
+        && (data.keys().hasAny(['paymentDate']) ? (data.paymentDate is string && data.paymentDate.size() <= 50) : true)
+        && (data.keys().hasAny(['amountPaid']) ? (data.amountPaid is number) : true)
+        && (data.keys().hasAny(['paymentMethod']) ? (data.paymentMethod is string && data.paymentMethod.size() <= 200) : true)
+        && (data.keys().hasAny(['transactionReference']) ? (data.transactionReference is string && data.transactionReference.size() <= 200) : true);
+    }
+
+    function isValidFollowUp(data) {
+      return data.keys().hasAll(['id', 'sponsorId', 'boardId', 'dueDate', 'completed', 'createdAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.sponsorId is string && data.sponsorId.size() <= 128
+        && data.boardId is string && data.boardId.size() <= 128
+        && data.dueDate is string && data.dueDate.size() <= 50
+        && data.completed is bool
+        && data.createdAt is timestamp
+        && (data.keys().hasAny(['notes']) ? (data.notes is string && data.notes.size() <= 5000) : true);
+    }
+
+    function isValidScript(data) {
+      return data.keys().hasAll(['id', 'title', 'content', 'category', 'updatedAt'])
+        && data.id is string && data.id.size() <= 128
+        && data.title is string && data.title.size() <= 200
+        && data.content is string && data.content.size() <= 10000
+        && data.category is string && data.category.size() <= 50
+        && data.updatedAt is timestamp;
+    }
+
+    match /users/{userId} {
+      allow get: if isVerified() && isValidId(userId) && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      
+      // Allow users to create their profile if they don't have one, or admin to create for others
+      allow create: if isVerified() && isValidId(userId) && (request.auth.uid == userId || isAdmin())
+        && isValidRepProfile(incoming())
+        && incoming().id == userId
+        && incoming().createdAt == request.time
+        && (incoming().isAdmin == false || isAdmin() || isSystemAdminBootstrapping());
+
+      // Only admins or the user themselves can update basic info. Only admins can update isAdmin.
+      allow update: if isVerified() && isValidId(userId) && isValidRepProfile(incoming()) && (
+        (isAdmin() && incoming().createdAt == existing().createdAt && incoming().id == existing().id) ||
+        (request.auth.uid == userId && incoming().isAdmin == existing().isAdmin && incoming().createdAt == existing().createdAt && incoming().id == existing().id)
+      );
+
+      allow delete: if isAdmin() && isValidId(userId);
+    }
+
+    match /boards/{boardId} {
+      allow get: if isVerified() && isValidId(boardId) && (existing().assignedRepId == request.auth.uid || isAdmin());
+      allow list: if isVerified() && (resource.data.assignedRepId == request.auth.uid || isAdmin());
+      
+      allow create: if isVerified() && isValidId(boardId)
+        && isValidBoard(incoming())
+        && incoming().id == boardId
+        && (incoming().assignedRepId == request.auth.uid || isAdmin())
+        && incoming().createdAt == request.time;
+      
+      allow update: if isVerified() && isValidId(boardId) && isValidBoard(incoming()) && (
+        isAdmin() ||
+        (existing().assignedRepId == request.auth.uid && incoming().assignedRepId == existing().assignedRepId && incoming().createdAt == existing().createdAt)
+      );
+
+      allow delete: if isAdmin() && isValidId(boardId);
+
+      match /referrals/{referralId} {
+        allow get: if isVerified() && isValidId(referralId) && isValidId(boardId) && (
+          get(/databases/$(database)/documents/boards/$(boardId)).data.assignedRepId == request.auth.uid || isAdmin()
+        );
+        allow list: if isVerified() && isValidId(boardId) && (
+          get(/databases/$(database)/documents/boards/$(boardId)).data.assignedRepId == request.auth.uid || isAdmin()
+        );
+        allow create: if isVerified() && isValidId(referralId) && isValidId(boardId)
+          && isValidReferral(incoming())
+          && incoming().id == referralId
+          && incoming().boardId == boardId
+          && incoming().createdAt == request.time
+          && (get(/databases/$(database)/documents/boards/$(boardId)).data.assignedRepId == request.auth.uid || isAdmin());
+        allow update: if isVerified() && isValidId(referralId) && isValidId(boardId)
+          && isValidReferral(incoming())
+          && incoming().boardId == existing().boardId
+          && incoming().createdAt == existing().createdAt
+          && (get(/databases/$(database)/documents/boards/$(boardId)).data.assignedRepId == request.auth.uid || isAdmin());
+        allow delete: if isVerified() && isValidId(referralId) && isValidId(boardId) && (
+          get(/databases/$(database)/documents/boards/$(boardId)).data.assignedRepId == request.auth.uid || isAdmin()
+        );
+      }
+
+      match /sponsors/{sponsorId} {
+        allow get: if isVerified() && isValidId(sponsorId) && isValidId(boardId) && (
+          get(/databases/$(database)/documents/boards/$(boardId)).data.assignedRepId == request.auth.uid || isAdmin()
+        );
+        allow list: if isVerified() && isValidId(boardId) && (
+          get(/databases/$(database)/documents/boards/$(boardId)).data.assignedRepId == request.auth.uid || isAdmin()
+        );
+        allow create: if isVerified() && isValidId(sponsorId) && isValidId(boardId)
+          && isValidSponsor(incoming())
+          && incoming().id == sponsorId
+          && incoming().boardId == boardId
+          && incoming().createdAt == request.time
+          && (get(/databases/$(database)/documents/boards/$(boardId)).data.assignedRepId == request.auth.uid || isAdmin());
+        allow update: if isVerified() && isValidId(sponsorId) && isValidId(boardId)
+          && isValidSponsor(incoming())
+          && incoming().boardId == existing().boardId
+          && incoming().createdAt == existing().createdAt
+          && (get(/databases/$(database)/documents/boards/$(boardId)).data.assignedRepId == request.auth.uid || isAdmin());
+        allow delete: if isVerified() && isValidId(sponsorId) && isValidId(boardId) && (
+          get(/databases/$(database)/documents/boards/$(boardId)).data.assignedRepId == request.auth.uid || isAdmin()
+        );
+      }
+
+      match /followups/{followUpId} {
+        allow get: if isVerified() && isValidId(followUpId) && isValidId(boardId) && (
+          get(/databases/$(database)/documents/boards/$(boardId)).data.assignedRepId == request.auth.uid || isAdmin()
+        );
+        allow list: if isVerified() && isValidId(boardId) && (
+          get(/databases/$(database)/documents/boards/$(boardId)).data.assignedRepId == request.auth.uid || isAdmin()
+        );
+        allow create: if isVerified() && isValidId(followUpId) && isValidId(boardId)
+          && isValidFollowUp(incoming())
+          && incoming().id == followUpId
+          && incoming().boardId == boardId
+          && incoming().createdAt == request.time
+          && (get(/databases/$(database)/documents/boards/$(boardId)).data.assignedRepId == request.auth.uid || isAdmin());
+        allow update: if isVerified() && isValidId(followUpId) && isValidId(boardId)
+          && isValidFollowUp(incoming())
+          && incoming().boardId == existing().boardId
+          && incoming().createdAt == existing().createdAt
+          && (get(/databases/$(database)/documents/boards/$(boardId)).data.assignedRepId == request.auth.uid || isAdmin());
+        allow delete: if isVerified() && isValidId(followUpId) && isValidId(boardId) && (
+          get(/databases/$(database)/documents/boards/$(boardId)).data.assignedRepId == request.auth.uid || isAdmin()
+        );
+      }
+    }
+
+    match /scripts/{scriptId} {
+      // Reps can read scripts, but only admins can modify
+      allow get, list: if isVerified();
+      allow create: if isAdmin() && isValidId(scriptId) && isValidScript(incoming()) && incoming().id == scriptId && incoming().updatedAt == request.time;
+      allow update: if isAdmin() && isValidId(scriptId) && isValidScript(incoming()) && incoming().id == existing().id && incoming().updatedAt == request.time;
+      allow delete: if isAdmin() && isValidId(scriptId);
+    }
+  }
+}

@@ -1,0 +1,144 @@
+{
+  "entities": {
+    "RepProfile": {
+      "title": "RepProfile",
+      "description": "User profile for sales reps and admins.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "fullName": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "isAdmin": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "fullName", "email", "isAdmin", "createdAt"]
+    },
+    "Board": {
+      "title": "Board",
+      "description": "A spotlight board associated with a restaurant.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "assignedRepId": { "type": "string" },
+        "restaurantName": { "type": "string" },
+        "restaurantContactName": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "notes": { "type": "string" },
+        "status": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "orderDate": { "type": "string" },
+        "printerVendor": { "type": "string" },
+        "orderCost": { "type": "number" },
+        "expectedDeliveryDate": { "type": "string" },
+        "trackingNumber": { "type": "string" },
+        "orderNotes": { "type": "string" },
+        "deliveryDate": { "type": "string" },
+        "deliveryNotes": { "type": "string" }
+      },
+      "required": ["id", "assignedRepId", "restaurantName", "status", "createdAt"]
+    },
+    "Referral": {
+      "title": "Referral",
+      "description": "A referral for a board sponsor.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "boardId": { "type": "string" },
+        "businessName": { "type": "string" },
+        "contactName": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "businessType": { "type": "string" },
+        "relationship": { "type": "string" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "boardId", "businessName", "createdAt"]
+    },
+    "Sponsor": {
+      "title": "Sponsor",
+      "description": "A sponsor on a board.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "boardId": { "type": "string" },
+        "businessName": { "type": "string" },
+        "contactName": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "referralSource": { "type": "string" },
+        "spotNumber": { "type": "number" },
+        "annualPrice": { "type": "number" },
+        "status": { "type": "string" },
+        "paymentStatus": { "type": "string" },
+        "notes": { "type": "string" },
+        "lastContactDate": { "type": "string" },
+        "nextFollowUpDate": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "invoiceDate": { "type": "string" },
+        "paymentDate": { "type": "string" },
+        "amountPaid": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "transactionReference": { "type": "string" }
+      },
+      "required": ["id", "boardId", "businessName", "spotNumber", "annualPrice", "status", "paymentStatus", "createdAt"]
+    },
+    "FollowUp": {
+      "title": "FollowUp",
+      "description": "A follow-up task for a sponsor.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "sponsorId": { "type": "string" },
+        "boardId": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "notes": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "sponsorId", "boardId", "dueDate", "completed", "createdAt"]
+    },
+    "Script": {
+      "title": "Script",
+      "description": "A script template used by reps (managed by admin).",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "category": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "title", "content", "category", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "RepProfile",
+      "description": "User profiles for reps and admins."
+    },
+    "/boards/{boardId}": {
+      "schema": "Board",
+      "description": "Boards managed by reps."
+    },
+    "/boards/{boardId}/referrals/{referralId}": {
+      "schema": "Referral",
+      "description": "Referrals associated with a specific board."
+    },
+    "/boards/{boardId}/sponsors/{sponsorId}": {
+      "schema": "Sponsor",
+      "description": "Sponsors associated with a specific board."
+    },
+    "/boards/{boardId}/followups/{followUpId}": {
+      "schema": "FollowUp",
+      "description": "Follow-ups for sponsors on a specific board."
+    },
+    "/scripts/{scriptId}": {
+      "schema": "Script",
+      "description": "Global scripts managed by admins, read-only for reps."
+    }
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "Spotlight Reps",
+  "description": "Guided field-sales system for Spotlight Boards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
